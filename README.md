@@ -1,57 +1,61 @@
 
-# pg-dockup
+# pg-dockup - postgres dockerized backup
 
-Recurring backup of your postgres database to s3, with local copy for instant access.
+Dockerized cron job to pg_dump to s3.
 
-# Usage
-
-Specify following environment variables:
+## Usage with docker-compose
 
 ```
-# postgres connection string
-PG_CONNECTION_STRING=postgresql://user:password@ip[:port]/dbname
+version: "3"
+services:
+  postgres:
+    image: "postgres:latest"
 
-# pg_dump options to be appended to pg_dump command
-# by default: PG_DUMP_OPTIONS=--verbose
-
-# aws credentials
-AWS_ACCESS_KEY_ID=<key_here>
-AWS_SECRET_ACCESS_KEY=<secret_here>
-AWS_DEFAULT_REGION=us-east-1
-
-# bucket where backup will be uploaded
-AWS_S3_BUCKET_NAME=my-backups.example.com
-# prefix for pg_dump files
-# by default: BACKUP_NAME=pg_dump  
-
-# awscli cp command option to be appended, refer to `http://docs.aws.amazon.com/cli/latest/reference/s3/cp.html`
-# by default: AWS_S3_CP_OPTIONS=--sse AES256
-
-# if defined will install cron, time in UTC. By default will run backup once and exit
-CRON_TIME=0 2 * * *
+  db-backup:
+    restart: unless-stopped
+    image: lkarolewski/pg-dockup:latest
+    depends_on:
+      - postgres
+    environment:
+      - PG_CONNECTION_STRING=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}/${POSTGRES_DB}
+      - AWS_ACCESS_KEY_ID=""
+      - AWS_SECRET_ACCESS_KEY=""
+      - AWS_S3_BUCKET_NAME=""
+      - AWS_S3_REGION=""
+      - BACKUP_CRON_EXPRESSION="0 2 * * *"
 ```
 
-## Backup
-Just run the image:
+## Usage
 
-```
-$ docker run --rm \
---env-file env.txt \
---name pg-dockup 
-lkarolewski/pg-dockup:latest
-```
+### One time backup
 
-## Restore
-
-Connect to container using `docker exec -it <container name> /bin/bash` 
+    docker run --rm --env-file .env lkarolewski/pg-dockup:latest ./backup-create.sh
 
 
-Last 7 backups are stored locally in `/home/pg-dockup/local-backup`.
+### Download latest backup
+
+    docker run --rm --env-file .env -v "$(pwd)":/home/backup/local-backup lkarolewski/pg-dockup:latest ./backup-download-last.sh
 
 
-To retieve last backup from s3:
-- `./download_last.sh`
+### Restore backup
+
+    docker run --rm --env-file .env -v "$(pwd)":/home/backup/local-backup lkarolewski/pg-dockup:latest ./backup-restore.sh
 
 
-To restore db:
- - `./restore.sh <filename>`
+## env variables
+
+### required to create and restore backup
+
+    PG_CONNECTION_STRING=postgresql://USER:PASSWORD@HOST/DB_NAME
+
+### required to copy to and from s3   
+    AWS_ACCESS_KEY_ID=""
+    AWS_SECRET_ACCESS_KEY=""
+    AWS_S3_BUCKET_NAME=""
+    AWS_S3_REGION=""
+        
+### optional - have default values
+    BACKUP_CRON_EXPRESSION="0 */2 * * *" #Every two hours
+    BACKUP_NAME_PREFIX=pg_dump
+    PG_DUMP_OPTIONS=--verbose
+    AWS_S3_CP_OPTIONS=--sse AES256 # options appended to awscli cp command, refer to `http://docs.aws.amazon.com/cli/latest/reference/s3/cp.html`
