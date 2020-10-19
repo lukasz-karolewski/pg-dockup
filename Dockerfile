@@ -1,16 +1,16 @@
 FROM ubuntu:20.04
 LABEL maintainer="Lukasz Karolewski"
 
-ENV BACKUP_NAME_PREFIX pg_dump
-ENV AWS_S3_CP_OPTIONS --sse AES256
-ENV PG_DUMP_OPTIONS --verbose
-ENV DIR /home/backup
-ENV LOCAL_BACKUP_DIR $DIR/local-backup
-ENV BACKUP_CRON_EXPRESSION="0 */2 * * *"
-ENV LOGFILE=/var/log/backup.log
-
+ENV DIR="/home/backup"
 RUN mkdir -p $DIR 
 WORKDIR $DIR
+
+ENV LOGFILE="/var/log/backup.log"
+ENV LOCAL_BACKUP_DIR="$DIR/local-backup"
+ENV BACKUP_NAME_PREFIX="pg_dump"
+ENV PG_DUMP_OPTIONS="--clean --create --verbose"
+ENV AWS_S3_CP_OPTIONS="--sse AES256"
+ENV BACKUP_CRON_EXPRESSION="0 */2 * * *"
 
 VOLUME $LOCAL_BACKUP_DIR
 
