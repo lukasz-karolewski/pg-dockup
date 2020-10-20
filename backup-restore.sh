@@ -12,4 +12,5 @@ fi
 set -e
 set -x
 
+PG_CONNECTION_STRING=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}/postgres
 cat "$1" | gunzip | psql "${PG_CONNECTION_STRING}"

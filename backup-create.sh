@@ -10,6 +10,7 @@ readonly BACKUP_FILENAME="${BACKUP_NAME_PREFIX}-$(date +"%Y-%m-%dT%H-%M-%SZ").gz
 readonly LOCAL_BACKUP_PATH="${LOCAL_BACKUP_DIR}/${BACKUP_FILENAME}"
 
 # Run backup
+PG_CONNECTION_STRING=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}/${POSTGRES_DB}
 pg_dump "${PG_CONNECTION_STRING}" ${PG_DUMP_OPTIONS} | gzip > "$LOCAL_BACKUP_PATH"
 
 # Remove local backups older than 30 days 

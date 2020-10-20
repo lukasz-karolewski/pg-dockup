@@ -17,7 +17,10 @@ services:
     depends_on:
       - postgres
     environment:
-      - PG_CONNECTION_STRING=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}/${POSTGRES_DB}
+      - POSTGRES_HOST=""
+      - POSTGRES_DB=""
+      - POSTGRES_USER=""
+      - POSTGRES_PASSWORD=""
       - AWS_ACCESS_KEY_ID=""
       - AWS_SECRET_ACCESS_KEY=""
       - AWS_S3_BUCKET_NAME=""
@@ -46,7 +49,10 @@ services:
 
 ### required to create and restore backup
 
-    PG_CONNECTION_STRING=postgresql://USER:PASSWORD@HOST/DB_NAME
+    POSTGRES_HOST=""
+    POSTGRES_DB=""
+    POSTGRES_USER=""
+    POSTGRES_PASSWORD=""
 
 ### required to copy to and from s3   
     AWS_ACCESS_KEY_ID=""
