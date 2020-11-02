@@ -22,5 +22,5 @@ if [ -z "${AWS_ACCESS_KEY_ID}" ] || [ -z "${AWS_SECRET_ACCESS_KEY}" ] || [ -z "$
 fi 
 
 # Upload the backup to S3
-aws s3 --region "${AWS_S3_REGION}" cp "${LOCAL_BACKUP_PATH}" "s3://${AWS_S3_BUCKET_NAME}/${BACKUP_FILENAME}.gz" "${AWS_S3_CP_OPTIONS}"
+aws s3 --region "${AWS_S3_REGION}" cp "${LOCAL_BACKUP_PATH}" "s3://${AWS_S3_BUCKET_NAME}/${BACKUP_FILENAME}" ${AWS_S3_CP_OPTIONS}
 echo "backup done"

@@ -64,4 +64,4 @@ services:
     BACKUP_CRON_EXPRESSION="0 */2 * * *" #Every two hours
     BACKUP_NAME_PREFIX=pg_dump
     PG_DUMP_OPTIONS="--clean --create --verbose"
-    AWS_S3_CP_OPTIONS=--sse AES256 # options appended to awscli cp command, refer to `http://docs.aws.amazon.com/cli/latest/reference/s3/cp.html`
+    AWS_S3_CP_OPTIONS="--sse AES256" # options appended to awscli cp command, refer to `http://docs.aws.amazon.com/cli/latest/reference/s3/cp.html`
