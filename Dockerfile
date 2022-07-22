@@ -1,4 +1,4 @@
-FROM ubuntu:21.10
+FROM ubuntu:22.04
 LABEL maintainer="Lukasz Karolewski"
 
 ENV DIR="/home/backup"
@@ -19,7 +19,7 @@ RUN apt-get update && apt-get upgrade -y
 RUN apt-get install gnupg2 cron unzip lsb-release curl -y
 
 # awscli 2.0
-RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o "awscliv2.zip" && unzip awscliv2.zip && ./aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli && rm -f awscliv2.zip && rm -rf aws
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o "awscliv2.zip" && unzip -q awscliv2.zip && ./aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli && rm -f awscliv2.zip && rm -rf aws
 
 RUN echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" >> /etc/apt/sources.list.d/pgdg.list
 RUN curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
