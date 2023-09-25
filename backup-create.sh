@@ -13,6 +13,12 @@ readonly LOCAL_BACKUP_PATH="${LOCAL_BACKUP_DIR}/${BACKUP_FILENAME}"
 PG_CONNECTION_STRING=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}/${POSTGRES_DB}
 pg_dump "${PG_CONNECTION_STRING}" ${PG_DUMP_OPTIONS} | gzip > "$LOCAL_BACKUP_PATH"
 
+# pg_dump can generates an empty 20-byte gzipped backup file, check for that and abort if so
+if [ "$(stat -c%s "$LOCAL_BACKUP_PATH")" -lt 50 ]; then
+  echo "Backup file is less than 50 bytes, aborting"
+  exit 1
+fi
+
 # Remove local backups older than 30 days 
 find . -type f -name "${BACKUP_NAME_PREFIX}*.gz" -mtime +30 -delete
 
