@@ -33,7 +33,7 @@ jobs:
             --platform linux/amd64,linux/arm64 \
             --output "type=image,push=true" \
             --tag lkarolewski/pg-dockup:latest \
-            --tag lkarolewski/pg-dockup:16 \
+            --tag lkarolewski/pg-dockup:17 \
             --file ./Dockerfile ./
 
       - name: Inspect image
