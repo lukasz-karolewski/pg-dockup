@@ -2,13 +2,17 @@
 set -e
 set -x
 
-# run backup immiedieately
+# Create log file if it doesn't exist
+mkdir -p "$(dirname "${LOGFILE}")"
+touch "${LOGFILE}"
+
+# Run backup immediately
 ./backup-create.sh >> "${LOGFILE}" 2>&1
 
-# set environment vars for cron
+# Set environment vars for cron
 env > /etc/environment
 
-# configure crontab
+# Configure crontab
 CRON_FILE=/etc/cron.d/backup
 CRON_LINE="$BACKUP_CRON_EXPRESSION root $DIR/backup-create.sh >> ${LOGFILE} 2>&1"
 
@@ -17,7 +21,14 @@ printf "\n" >> $CRON_FILE # needs a newline
 
 chmod 0644 $CRON_FILE
 
-# https://stackoverflow.com/questions/21926465/issues-running-cron-in-docker-on-different-hosts
-sed -e '/pam_loginuid.so/ s/^#*/#/' -i /etc/pam.d/cron
+# Start cron based on the system
+if command -v crond > /dev/null 2>&1; then
+  # Alpine uses crond
+  crond -f -d 8 &
+else
+  echo "No cron service found"
+  exit 1
+fi
 
-service cron start && tail -f "${LOGFILE}"
+# Follow log file
+tail -f "${LOGFILE}"
