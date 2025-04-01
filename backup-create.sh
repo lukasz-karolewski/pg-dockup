@@ -15,6 +15,9 @@ readonly ERROR_AWS_UPLOAD_FAILED=5
 echo "Starting backup at $(date)"
 export PATH=$PATH:/usr/bin:/usr/local/bin:/bin
 
+# Collect any additional pg_dump arguments passed to the script
+ADDITIONAL_ARGS="$@"
+
 # Validate required environment variables
 if [ -z "${POSTGRES_USER}" ] || [ -z "${POSTGRES_PASSWORD}" ] || [ -z "${POSTGRES_HOST}" ] || [ -z "${POSTGRES_DB}" ]; then
   echo "ERROR: Required PostgreSQL environment variables not set"
@@ -37,8 +40,11 @@ readonly LOCAL_BACKUP_PATH="${LOCAL_BACKUP_DIR}/${BACKUP_FILENAME}"
 
 # Run backup with proper error checking
 PG_CONNECTION_STRING=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}/${POSTGRES_DB}
-echo "Running pg_dump..."
-if ! pg_dump "${PG_CONNECTION_STRING}" ${PG_DUMP_OPTIONS} | gzip > "$LOCAL_BACKUP_PATH"; then
+
+# Combine default options with any additional arguments
+ALL_OPTIONS="${PG_DUMP_OPTIONS} ${ADDITIONAL_ARGS}"
+echo "Running pg_dump with options: ${ALL_OPTIONS}..."
+if ! pg_dump "${PG_CONNECTION_STRING}" ${ALL_OPTIONS} | gzip > "$LOCAL_BACKUP_PATH"; then
   echo "pg_dump failed, aborting"
   rm -f "$LOCAL_BACKUP_PATH"
   exit $ERROR_PG_DUMP_FAILED
