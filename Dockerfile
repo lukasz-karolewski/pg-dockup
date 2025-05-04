@@ -9,6 +9,7 @@ ENV BACKUP_NAME_PREFIX="pg_dump"
 ENV PG_DUMP_OPTIONS="--clean --create --verbose"
 ENV AWS_S3_CP_OPTIONS="--sse AES256"
 ENV BACKUP_CRON_EXPRESSION="0 */2 * * *" 
+ENV CROND_LOG_LEVEL="4"
 
 # Create necessary directories and log file early
 # Also create the standard crontabs directory

@@ -29,7 +29,8 @@ chmod 0600 $CRON_FILE
 # Start cron based on the system
 if command -v crond > /dev/null 2>&1; then
   # Alpine uses crond
-  crond -f -d 8 &
+  # Use configured log level from environment variable
+  crond -f -d "${CROND_LOG_LEVEL}" &
 else
   echo "No cron service found"
   exit 1

@@ -36,15 +36,23 @@ services:
     depends_on:
       - postgres
     environment:
+      # PostgreSQL Connection
       - POSTGRES_HOST=postgres
       - POSTGRES_DB=your_database
       - POSTGRES_USER=your_username
       - POSTGRES_PASSWORD=your_password
+      
+      # AWS S3 Configuration
       - AWS_ACCESS_KEY_ID=your_aws_key
       - AWS_SECRET_ACCESS_KEY=your_aws_secret
       - AWS_S3_BUCKET_NAME=your_bucket_name
       - AWS_S3_REGION=your_aws_region
+      
+      # Backup Schedule
       - BACKUP_CRON_EXPRESSION="0 2 * * *"  # Daily at 2 AM
+      
+      # System Configuration (optional)
+      - CROND_LOG_LEVEL=4  # configure log level for cron daemon
 ```
 
 ## Usage
@@ -111,6 +119,7 @@ docker run --rm --env-file .env -v "$(pwd)":/home/backup/local-backup \
 | `BACKUP_NAME_PREFIX` | `pg_dump` | Prefix for backup filenames |
 | `PG_DUMP_OPTIONS` | `--clean --create --verbose` | Options passed to pg_dump command |
 | `AWS_S3_CP_OPTIONS` | `--sse AES256` | Options for S3 upload command |
+| `CROND_LOG_LEVEL` | `5` | Log level for crond (0-9, where 0 is least verbose and 9 is most verbose) |
 
 ## How It Works
 
