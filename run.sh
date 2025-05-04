@@ -12,14 +12,19 @@ touch "${LOGFILE}"
 # Set environment vars for cron
 env > /etc/environment
 
-# Configure crontab
-CRON_FILE=/etc/cron.d/backup
-CRON_LINE="$BACKUP_CRON_EXPRESSION root $DIR/backup-create.sh >> ${LOGFILE} 2>&1"
+# Configure crontab for Alpine's crond
+# Always use crontabs file to ensure exact cron expression is respected
+CRON_FILE=/etc/crontabs/root
+CRON_LINE="$BACKUP_CRON_EXPRESSION $DIR/backup-create.sh >> ${LOGFILE} 2>&1"
 
-echo "$CRON_LINE" > $CRON_FILE
-printf "\n" >> $CRON_FILE # needs a newline
+# Ensure we're adding to the file, not overwriting it
+echo "$CRON_LINE" >> $CRON_FILE
 
-chmod 0644 $CRON_FILE
+# Add a debug line to verify cron is working
+echo "*/5 * * * * echo 'Cron is working' >> ${LOGFILE}" >> $CRON_FILE
+
+# Make sure crontab is properly configured
+chmod 0600 $CRON_FILE
 
 # Start cron based on the system
 if command -v crond > /dev/null 2>&1; then

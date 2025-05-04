@@ -1,22 +1,28 @@
 FROM alpine:3
 
-LABEL maintainer="Lukasz Karolewski"
+LABEL maintainer="Lukasz Karolewski" 
 
 ENV DIR="/home/backup"
-RUN mkdir -p $DIR 
-WORKDIR $DIR
-
 ENV LOGFILE="/var/log/backup.log"
 ENV LOCAL_BACKUP_DIR="$DIR/local-backup"
 ENV BACKUP_NAME_PREFIX="pg_dump"
 ENV PG_DUMP_OPTIONS="--clean --create --verbose"
 ENV AWS_S3_CP_OPTIONS="--sse AES256"
-ENV BACKUP_CRON_EXPRESSION="0 */2 * * *"
+ENV BACKUP_CRON_EXPRESSION="0 */2 * * *" 
 
-RUN mkdir -p $LOCAL_BACKUP_DIR
-VOLUME $LOCAL_BACKUP_DIR
+# Create necessary directories and log file early
+# Also create the standard crontabs directory
+RUN mkdir -p "$DIR" "$LOCAL_BACKUP_DIR" $(dirname "$LOGFILE") /etc/crontabs && \
+    touch "$LOGFILE"
 
-# Install dependencies
+# Set the working directory
+WORKDIR "$DIR"
+
+# Declare the directory where local backups will be stored as a volume
+# This allows mounting this directory to persist backups outside the container
+VOLUME "$LOCAL_BACKUP_DIR"
+
+# Install dependencies, including dcron and a minimal init system (tini)
 RUN apk add --no-cache \
     bash \
     curl \
@@ -27,17 +33,13 @@ RUN apk add --no-cache \
     unzip \
     aws-cli \
     dcron \
-    findutils
+    findutils \
+    tini # Added tini for better signal handling
 
-# Setup cron
-RUN mkdir -p /var/log /etc/cron.d && \
-    touch $LOGFILE && \
-    mkdir -p /etc/periodic
+# Copy scripts and application files into the working directory ($DIR)
+COPY . "$DIR"
 
-# Add health check
-HEALTHCHECK --interval=5m --timeout=3s \
-  CMD test -f $LOGFILE && grep -q "Backup process completed successfully" $LOGFILE && echo "OK" || exit 1
-
-COPY . $DIR
+# Set tini as the entrypoint to handle signals gracefully
+ENTRYPOINT ["/sbin/tini", "--"]
 
 CMD ["./run.sh"]
