@@ -45,6 +45,7 @@ PG_CONNECTION_STRING=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGR
 # Combine default options with any additional arguments
 ALL_OPTIONS="${PG_DUMP_OPTIONS} ${ADDITIONAL_ARGS}"
 echo "Running pg_dump with options: ${ALL_OPTIONS}..."
+# shellcheck disable=SC2086 
 if ! pg_dump "${PG_CONNECTION_STRING}" ${ALL_OPTIONS} | gzip > "$LOCAL_BACKUP_PATH"; then
   echo "pg_dump failed, aborting"
   rm -f "$LOCAL_BACKUP_PATH"
@@ -81,39 +82,32 @@ if [ -z "${AWS_ACCESS_KEY_ID}" ] || [ -z "${AWS_SECRET_ACCESS_KEY}" ] || [ -z "$
   S3_UPLOAD_REQUIRED=false
   # Keep the original exit code logic for this specific case later
 else
-  # Check if md5sum command exists
-  if ! command -v md5sum >/dev/null; then
-    echo "WARN: md5sum command not found. Cannot compare checksums with previous local backup. Proceeding with upload if needed."
-    # S3_UPLOAD_REQUIRED remains true
+  # Find latest *local* backup, excluding the one just created
+  echo "Checking for latest local backup to compare..."
+  # Find files, exclude the current one, print timestamp and path, sort by time, get the last one, extract path
+  LATEST_LOCAL_BACKUP_PATH=$(find "${LOCAL_BACKUP_DIR}" -maxdepth 1 -type f -name "${BACKUP_NAME_PREFIX}*.gz" -not -path "${LOCAL_BACKUP_PATH}" -printf '%T@ %p\n' | sort -n | tail -n 1 | cut -d' ' -f2-)
+
+  if [ -n "$LATEST_LOCAL_BACKUP_PATH" ]; then
+      echo "Latest previous local backup found: ${LATEST_LOCAL_BACKUP_PATH}"
+      echo "Calculating checksums..."
+      LOCAL_CHECKSUM=$(md5sum "${LOCAL_BACKUP_PATH}" | awk '{ print $1 }')
+      PREVIOUS_CHECKSUM=$(md5sum "${LATEST_LOCAL_BACKUP_PATH}" | awk '{ print $1 }')
+      echo "New backup checksum: ${LOCAL_CHECKSUM}"
+      echo "Previous backup checksum: ${PREVIOUS_CHECKSUM}"
+
+      if [ "$LOCAL_CHECKSUM" == "$PREVIOUS_CHECKSUM" ]; then
+          echo "Backup content is identical to the latest local backup (${LATEST_LOCAL_BACKUP_PATH}). Skipping S3 upload."
+          S3_UPLOAD_REQUIRED=false
+          echo "Removing redundant local backup: ${LOCAL_BACKUP_PATH}"
+          rm -f "${LOCAL_BACKUP_PATH}"
+      else
+          echo "Backup content differs from the latest local backup. Proceeding with S3 upload."
+          # S3_UPLOAD_REQUIRED remains true
+      fi
   else
-    # Find latest *local* backup, excluding the one just created
-    echo "Checking for latest local backup to compare..."
-    # Find files, exclude the current one, print timestamp and path, sort by time, get the last one, extract path
-    LATEST_LOCAL_BACKUP_PATH=$(find "${LOCAL_BACKUP_DIR}" -maxdepth 1 -type f -name "${BACKUP_NAME_PREFIX}*.gz" -not -path "${LOCAL_BACKUP_PATH}" -printf '%T@ %p\n' | sort -n | tail -n 1 | cut -d' ' -f2-)
-
-    if [ -n "$LATEST_LOCAL_BACKUP_PATH" ]; then
-        echo "Latest previous local backup found: ${LATEST_LOCAL_BACKUP_PATH}"
-        echo "Calculating checksums..."
-        LOCAL_CHECKSUM=$(md5sum "${LOCAL_BACKUP_PATH}" | awk '{ print $1 }')
-        PREVIOUS_CHECKSUM=$(md5sum "${LATEST_LOCAL_BACKUP_PATH}" | awk '{ print $1 }')
-        echo "New backup checksum: ${LOCAL_CHECKSUM}"
-        echo "Previous backup checksum: ${PREVIOUS_CHECKSUM}"
-
-        if [ "$LOCAL_CHECKSUM" == "$PREVIOUS_CHECKSUM" ]; then
-            echo "Backup content is identical to the latest local backup (${LATEST_LOCAL_BACKUP_PATH}). Skipping S3 upload."
-            S3_UPLOAD_REQUIRED=false
-            # Optionally remove the newly created local backup since it's a duplicate
-            # echo "Removing redundant local backup: ${LOCAL_BACKUP_PATH}"
-            # rm -f "${LOCAL_BACKUP_PATH}"
-        else
-            echo "Backup content differs from the latest local backup. Proceeding with S3 upload."
-            # S3_UPLOAD_REQUIRED remains true
-        fi
-    else
-        echo "No previous local backups found for comparison. Proceeding with S3 upload."
-        # S3_UPLOAD_REQUIRED remains true
-    fi
-  fi # end md5sum check
+      echo "No previous local backups found for comparison. Proceeding with S3 upload."
+      # S3_UPLOAD_REQUIRED remains true
+  fi
 fi # end AWS credential check
 
 # Upload the backup to S3 only if required
