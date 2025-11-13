@@ -32,6 +32,9 @@ if [ -z "${LOCAL_BACKUP_DIR}" ] || [ -z "${BACKUP_NAME_PREFIX}" ]; then
   exit $ERROR_PG_DUMP_FAILED
 fi
 
+# Set default retention count if not specified
+BACKUP_RETENTION_COUNT=${BACKUP_RETENTION_COUNT:-10}
+
 # Create backup directory if it doesn't exist
 mkdir -p "${LOCAL_BACKUP_DIR}"
 
@@ -69,9 +72,9 @@ fi
 BACKUP_SIZE=$(du -h "${LOCAL_BACKUP_PATH}" | cut -f1)
 echo "Backup created successfully: ${LOCAL_BACKUP_PATH} (${BACKUP_SIZE})"
 
-# Remove local backups older than 30 days
-echo "Cleaning up old backups..."
-find "${LOCAL_BACKUP_DIR}" -type f -name "${BACKUP_NAME_PREFIX}*.gz" -mtime +30 -delete
+# Keep only the most recent backups (count-based rotation)
+echo "Cleaning up old backups (keeping ${BACKUP_RETENTION_COUNT} most recent)..."
+ls -t "${LOCAL_BACKUP_DIR}/${BACKUP_NAME_PREFIX}"*.gz 2>/dev/null | tail -n +$((BACKUP_RETENTION_COUNT + 1)) | xargs -r rm -f
 
 # --- S3 Upload Logic ---
 S3_UPLOAD_REQUIRED=true # Default to true, set to false if checksums match
