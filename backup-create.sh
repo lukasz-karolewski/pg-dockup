@@ -43,17 +43,21 @@ readonly BACKUP_FILENAME="${BACKUP_NAME_PREFIX}-$(date +"%Y-%m-%dT%H-%M-%SZ").gz
 readonly LOCAL_BACKUP_PATH="${LOCAL_BACKUP_DIR}/${BACKUP_FILENAME}"
 
 # Run backup with proper error checking
-PG_CONNECTION_STRING=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}/${POSTGRES_DB}
+# Use PGPASSWORD to avoid exposing password in process list
+export PGPASSWORD="${POSTGRES_PASSWORD}"
 
 # Combine default options with any additional arguments
 ALL_OPTIONS="${PG_DUMP_OPTIONS} ${ADDITIONAL_ARGS}"
 echo "Running pg_dump with options: ${ALL_OPTIONS}..."
 # shellcheck disable=SC2086 
-if ! pg_dump "${PG_CONNECTION_STRING}" ${ALL_OPTIONS} | gzip > "$LOCAL_BACKUP_PATH"; then
+if ! pg_dump -h "${POSTGRES_HOST}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" ${ALL_OPTIONS} | gzip > "$LOCAL_BACKUP_PATH"; then
   echo "pg_dump failed, aborting"
   rm -f "$LOCAL_BACKUP_PATH"
   exit $ERROR_PG_DUMP_FAILED
 fi
+
+# Clear the password from environment
+unset PGPASSWORD
 
 # Validate backup file contains actual PostgreSQL data
 echo "Validating backup..."
