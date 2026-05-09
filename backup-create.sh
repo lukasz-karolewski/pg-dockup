@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -e
+set -o pipefail
 # set -x
 
 # Error codes
@@ -66,8 +67,14 @@ if [ "$(stat -c%s "$LOCAL_BACKUP_PATH")" -lt 1024 ]; then
   exit $ERROR_BACKUP_TOO_SMALL
 fi
 
+if ! gzip -t "$LOCAL_BACKUP_PATH"; then
+  echo "Backup gzip integrity check failed, aborting"
+  exit $ERROR_INVALID_BACKUP_CONTENT
+fi
+
 # Check if the backup contains PostgreSQL data by looking for PostgreSQL header signatures
-if ! gunzip -c "$LOCAL_BACKUP_PATH" | head -c 50 | grep -q "PGDMP\|PostgreSQL\|pg_dump"; then
+BACKUP_HEADER=$(set +o pipefail; gunzip -c "$LOCAL_BACKUP_PATH" | head -c 50)
+if ! printf '%s' "$BACKUP_HEADER" | grep -q "PGDMP\|PostgreSQL\|pg_dump"; then
   echo "Backup doesn't appear to contain valid PostgreSQL backup data, aborting"
   exit $ERROR_INVALID_BACKUP_CONTENT
 fi
