@@ -32,9 +32,14 @@ fi
 
 # Find the last backup file
 echo "Searching for latest backup in s3://${AWS_S3_BUCKET_NAME} with prefix ${BACKUP_NAME_PREFIX}..."
-LAST_BACKUP=$(aws s3 ls "s3://$AWS_S3_BUCKET_NAME/" | awk -F " " '{print $4}' | grep ^"${BACKUP_NAME_PREFIX}" | sort -r | head -n 1)
+LAST_BACKUP=$(aws s3api list-objects-v2 \
+  --region "${AWS_S3_REGION}" \
+  --bucket "${AWS_S3_BUCKET_NAME}" \
+  --prefix "${BACKUP_NAME_PREFIX}" \
+  --query 'sort_by(Contents, &LastModified)[-1].Key' \
+  --output text)
 
-if [ -z "$LAST_BACKUP" ]; then
+if [ -z "$LAST_BACKUP" ] || [ "$LAST_BACKUP" = "None" ]; then
   echo "ERROR: No backups found matching prefix ${BACKUP_NAME_PREFIX}"
   exit $ERROR_NO_BACKUPS_FOUND
 fi
