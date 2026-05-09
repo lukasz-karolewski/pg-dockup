@@ -10,6 +10,7 @@ readonly ERROR_BACKUP_TOO_SMALL=2
 readonly ERROR_INVALID_BACKUP_CONTENT=3
 readonly ERROR_AWS_NOT_CONFIGURED=4
 readonly ERROR_AWS_UPLOAD_FAILED=5
+readonly ERROR_BACKUP_ALREADY_RUNNING=6
 
 # Add script description and usage
 # Purpose: Creates PostgreSQL database backups and uploads to S3
@@ -38,6 +39,13 @@ BACKUP_RETENTION_COUNT=${BACKUP_RETENTION_COUNT:-10}
 
 # Create backup directory if it doesn't exist
 mkdir -p "${LOCAL_BACKUP_DIR}"
+
+readonly LOCK_DIR="/tmp/pg-dockup-backup.lock"
+if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+  echo "Another backup is already running, skipping this run"
+  exit $ERROR_BACKUP_ALREADY_RUNNING
+fi
+trap 'rm -rf "$LOCK_DIR"' EXIT
 
 # Generate filenames
 readonly BACKUP_FILENAME="${BACKUP_NAME_PREFIX}-$(date +"%Y-%m-%dT%H-%M-%SZ").gz"
