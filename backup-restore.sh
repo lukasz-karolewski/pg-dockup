@@ -21,4 +21,16 @@ fi
 export PGPASSWORD="${POSTGRES_PASSWORD}"
 trap 'unset PGPASSWORD' EXIT
 
-gunzip < "$1" | psql -h "${POSTGRES_HOST}" -U "${POSTGRES_USER}" -d postgres
+if ! gzip -t "$1"; then
+  echo "ERROR: Backup gzip integrity check failed"
+  exit 1
+fi
+
+POSTGRES_RESTORE_DB="${POSTGRES_RESTORE_DB:-postgres}"
+BACKUP_HEADER=$(set +o pipefail; gunzip -c "$1" | head -c 5)
+
+if [ "$BACKUP_HEADER" = "PGDMP" ]; then
+  gunzip < "$1" | pg_restore -h "${POSTGRES_HOST}" -U "${POSTGRES_USER}" -d "${POSTGRES_RESTORE_DB}"
+else
+  gunzip < "$1" | psql -h "${POSTGRES_HOST}" -U "${POSTGRES_USER}" -d "${POSTGRES_RESTORE_DB}"
+fi
