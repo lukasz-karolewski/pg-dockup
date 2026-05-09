@@ -5,8 +5,10 @@ set -e
 mkdir -p "$(dirname "${LOGFILE}")"
 touch "${LOGFILE}"
 
-# Run backup immediately
-./backup-create.sh >> "${LOGFILE}" 2>&1
+# Run backup immediately, but do not prevent scheduled backups from starting.
+if ! ./backup-create.sh >> "${LOGFILE}" 2>&1; then
+  echo "Initial backup failed at $(date); scheduled backups will still start." >> "${LOGFILE}"
+fi
 
 # Set environment vars for cron
 env > /etc/environment
