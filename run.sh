@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 set -e
-set -x
 
 # Create log file if it doesn't exist
 mkdir -p "$(dirname "${LOGFILE}")"
@@ -17,11 +16,8 @@ env > /etc/environment
 CRON_FILE=/etc/crontabs/root
 CRON_LINE="$BACKUP_CRON_EXPRESSION $DIR/backup-create.sh >> ${LOGFILE} 2>&1"
 
-# Ensure we're adding to the file, not overwriting it
-echo "$CRON_LINE" >> $CRON_FILE
-
-# Add a debug line to verify cron is working
-echo "*/5 * * * * echo 'Cron is working' >> ${LOGFILE}" >> $CRON_FILE
+# Write the managed crontab entry.
+echo "$CRON_LINE" > $CRON_FILE
 
 # Make sure crontab is properly configured
 chmod 0600 $CRON_FILE
@@ -30,7 +26,7 @@ chmod 0600 $CRON_FILE
 if command -v crond > /dev/null 2>&1; then
   # Alpine uses crond
   # Use configured log level from environment variable
-  crond -f -d "${CROND_LOG_LEVEL}" &
+  crond -f -l "${CROND_LOG_LEVEL}" &
 else
   echo "No cron service found"
   exit 1

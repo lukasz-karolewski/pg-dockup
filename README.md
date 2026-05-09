@@ -52,7 +52,7 @@ services:
       - BACKUP_CRON_EXPRESSION="0 2 * * *"  # Daily at 2 AM
       
       # System Configuration (optional)
-      - CROND_LOG_LEVEL=4  # configure log level for cron daemon
+      - CROND_LOG_LEVEL=5  # configure log level for cron daemon
 ```
 
 ## Usage
