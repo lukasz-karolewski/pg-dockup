@@ -38,8 +38,8 @@ RUN apk add --no-cache \
     findutils \
     tini # Added tini for better signal handling
 
-# Copy scripts and application files into the working directory ($DIR)
-COPY . "$DIR"
+# Copy only runtime scripts; .dockerignore intentionally excludes metadata files.
+COPY backup-create.sh backup-download-last.sh backup-restore.sh run.sh ./
 
 # Set tini as the entrypoint to handle signals gracefully
 ENTRYPOINT ["/sbin/tini", "--"]
