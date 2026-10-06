@@ -1,0 +1,17 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backup-download:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check shell syntax
+        run: bash -n backup-download-last.sh
+      - name: Test downloads with the AWS CLI
+        run: |
+          aws --version
+          python3 -m unittest discover -s tests -v

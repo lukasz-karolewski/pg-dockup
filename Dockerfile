@@ -31,6 +31,7 @@ RUN apk add --no-cache \
     gnupg \
     gzip \
     postgresql18-client \
+    python3 \
     tzdata \
     unzip \
     aws-cli \
