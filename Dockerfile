@@ -40,7 +40,7 @@ RUN apk add --no-cache \
     tini # Added tini for better signal handling
 
 # Copy only runtime scripts; .dockerignore intentionally excludes metadata files.
-COPY backup-create.sh backup-download-last.sh backup-restore.sh run.sh ./
+COPY backup-create.sh backup-download-last.sh backup-restore.sh run.sh backup_s3.py ./
 
 # Set tini as the entrypoint to handle signals gracefully
 ENTRYPOINT ["/sbin/tini", "--"]

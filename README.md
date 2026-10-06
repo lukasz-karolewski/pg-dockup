@@ -80,6 +80,11 @@ docker run --rm --env-file .env -v "$(pwd)":/home/backup/local-backup \
   lkarolewski/pg-dockup:latest ./backup-download-last.sh
 ```
 
+The downloader reads `latest.json`, checks the referenced object, and verifies its
+size and SHA-256 before replacing a local file. If the pointer is unavailable or
+invalid, it lists the backup prefix. New backups carry their
+SHA-256 in S3 metadata for verification on this fallback path.
+
 ### Restoring a Backup
 
 Restore from a backup file:
@@ -117,6 +122,7 @@ docker run --rm --env-file .env -v "$(pwd)":/home/backup/local-backup \
 |----------|---------------|-------------|
 | `BACKUP_CRON_EXPRESSION` | `0 */2 * * *` | Cron schedule expression (default: every 2 hours) |
 | `BACKUP_NAME_PREFIX` | `pg_dump` | Prefix for backup filenames |
+| `BACKUP_RETENTION_COUNT` | `10` | Number of local backups retained after successful S3 publication |
 | `PG_DUMP_OPTIONS` | `--clean --create --verbose` | Options passed to pg_dump command |
 | `AWS_S3_CP_OPTIONS` | `--sse AES256` | Options for S3 upload command |
 | `CROND_LOG_LEVEL` | `5` | Log level for crond (0-9, where 0 is least verbose and 9 is most verbose) |
@@ -127,7 +133,13 @@ docker run --rm --env-file .env -v "$(pwd)":/home/backup/local-backup \
 2. When triggered, it creates a compressed PostgreSQL dump
 3. The backup is validated for integrity and minimum size
 4. The backup is uploaded to the specified S3 bucket
-5. Local backups older than 30 days are automatically cleaned up
+5. `latest.json` is published with the backup key, size, UTC timestamp, and SHA-256
+6. Local backups are rotated by count only after remote publication succeeds
+
+Upload failures preserve all local backup files. Each dump is uploaded, even if
+its contents match a previous local file, since that file might be from a failed
+upload. Dumps are named in UTC. A lock in the local backup directory prevents
+overlapping backups across containers sharing the volume.
 
 ## Error Handling
 
@@ -152,7 +164,8 @@ Run the backup download regression tests with Python 3 and the AWS CLI installed
 python3 -m unittest discover -s tests -v
 ```
 
-The tests use a local HTTP S3 stub and dummy credentials, including paginated
-listings with the newest backup on different pages. No AWS account is required.
+The tests use a local HTTP S3 stub, dummy credentials, and a fake `pg_dump`.
+They cover paginated downloads, pointer/checksum verification,
+upload failures and local rotation. No AWS account or database is required.
 
 Contributions are welcome! Please feel free to submit a Pull Request.
