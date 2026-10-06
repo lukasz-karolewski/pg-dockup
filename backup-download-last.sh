@@ -30,37 +30,8 @@ if [ -z "${AWS_ACCESS_KEY_ID}" ] || [ -z "${AWS_SECRET_ACCESS_KEY}" ] || [ -z "$
   exit $ERROR_AWS_NOT_CONFIGURED
 fi 
 
-# Find the last backup file
-echo "Searching for latest backup in s3://${AWS_S3_BUCKET_NAME} with prefix ${BACKUP_NAME_PREFIX}..."
-# JSON output applies the query once after all pages have been collected.
-# Text output applies it per page and returns multiple keys for large buckets.
-LAST_BACKUP_JSON=$(aws s3api list-objects-v2 \
-  --region "${AWS_S3_REGION}" \
-  --bucket "${AWS_S3_BUCKET_NAME}" \
-  --prefix "${BACKUP_NAME_PREFIX}" \
-  --query 'max_by(Contents || `[]`, &LastModified).Key' \
-  --output json)
-LAST_BACKUP=$(python3 -c 'import json, sys; key = json.load(sys.stdin); print(key if key is not None else "")' <<< "$LAST_BACKUP_JSON")
-
-if [ -z "$LAST_BACKUP" ]; then
-  echo "ERROR: No backups found matching prefix ${BACKUP_NAME_PREFIX}"
-  exit $ERROR_NO_BACKUPS_FOUND
-fi
-
-echo "Found latest backup: ${LAST_BACKUP}"
-
-# Download backup from S3
-echo "Downloading backup from S3..."
-if aws s3 cp "s3://$AWS_S3_BUCKET_NAME/$LAST_BACKUP" "$LOCAL_BACKUP_DIR/$LAST_BACKUP"; then
-  echo "Backup successfully downloaded to $LOCAL_BACKUP_DIR/$LAST_BACKUP"
-  
-  # Print backup info
-  BACKUP_SIZE=$(du -h "${LOCAL_BACKUP_DIR}/${LAST_BACKUP}" | cut -f1)
-  echo "Downloaded backup size: ${BACKUP_SIZE}"
-else
-  echo "ERROR: Failed to download backup from S3"
-  exit $ERROR_DOWNLOAD_FAILED
-fi
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+python3 "$SCRIPT_DIR/backup_s3.py" download
 
 echo "Download process completed successfully at $(date)"
 exit $SUCCESS

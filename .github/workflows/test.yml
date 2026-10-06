@@ -10,7 +10,10 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Check shell syntax
-        run: bash -n backup-download-last.sh
+        run: |
+          for script in backup-create.sh backup-download-last.sh run.sh; do
+            bash -n "$script"
+          done
       - name: Test downloads with the AWS CLI
         run: |
           aws --version
