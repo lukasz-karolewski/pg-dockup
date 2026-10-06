@@ -32,14 +32,17 @@ fi
 
 # Find the last backup file
 echo "Searching for latest backup in s3://${AWS_S3_BUCKET_NAME} with prefix ${BACKUP_NAME_PREFIX}..."
-LAST_BACKUP=$(aws s3api list-objects-v2 \
+# JSON output applies the query once after all pages have been collected.
+# Text output applies it per page and returns multiple keys for large buckets.
+LAST_BACKUP_JSON=$(aws s3api list-objects-v2 \
   --region "${AWS_S3_REGION}" \
   --bucket "${AWS_S3_BUCKET_NAME}" \
   --prefix "${BACKUP_NAME_PREFIX}" \
-  --query 'sort_by(Contents, &LastModified)[-1].Key' \
-  --output text)
+  --query 'max_by(Contents || `[]`, &LastModified).Key' \
+  --output json)
+LAST_BACKUP=$(python3 -c 'import json, sys; key = json.load(sys.stdin); print(key if key is not None else "")' <<< "$LAST_BACKUP_JSON")
 
-if [ -z "$LAST_BACKUP" ] || [ "$LAST_BACKUP" = "None" ]; then
+if [ -z "$LAST_BACKUP" ]; then
   echo "ERROR: No backups found matching prefix ${BACKUP_NAME_PREFIX}"
   exit $ERROR_NO_BACKUPS_FOUND
 fi

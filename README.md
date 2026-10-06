@@ -146,4 +146,13 @@ docker build -t pg-dockup .
 
 ## Contributing
 
+Run the backup download regression tests with Python 3 and the AWS CLI installed:
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+The tests use a local HTTP S3 stub and dummy credentials, including paginated
+listings with the newest backup on different pages. No AWS account is required.
+
 Contributions are welcome! Please feel free to submit a Pull Request.
