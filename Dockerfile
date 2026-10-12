@@ -41,6 +41,7 @@ RUN apk add --no-cache \
 
 # Copy only runtime scripts; .dockerignore intentionally excludes metadata files.
 COPY backup-create.sh backup-download-last.sh backup-restore.sh run.sh ./
+COPY lib/env.sh ./lib/env.sh
 
 # Set tini as the entrypoint to handle signals gracefully
 ENTRYPOINT ["/sbin/tini", "--"]

@@ -121,6 +121,55 @@ docker run --rm --env-file .env -v "$(pwd)":/home/backup/local-backup \
 | `AWS_S3_CP_OPTIONS` | `--sse AES256` | Options for S3 upload command |
 | `CROND_LOG_LEVEL` | `5` | Log level for crond (0-9, where 0 is least verbose and 9 is most verbose) |
 
+### Docker Secrets (`_FILE` variables)
+
+As in the official `postgres` image, credentials can be read from files
+instead of environment variables. Set `NAME_FILE` to a file path and the
+container reads `NAME` from that file, dropping trailing newlines. This works
+with Docker and Compose secrets mounted under `/run/secrets/`.
+
+| Variable | Reads |
+|----------|-------|
+| `POSTGRES_USER_FILE` | `POSTGRES_USER` |
+| `POSTGRES_PASSWORD_FILE` | `POSTGRES_PASSWORD` |
+| `AWS_ACCESS_KEY_ID_FILE` | `AWS_ACCESS_KEY_ID` |
+| `AWS_SECRET_ACCESS_KEY_FILE` | `AWS_SECRET_ACCESS_KEY` |
+
+Setting both `NAME` and `NAME_FILE` is an error, and so is a `NAME_FILE` that
+points to a missing or unreadable file. The container exits on startup, and a
+script started with `docker exec` exits before doing any work. The values are
+resolved at startup, before the first backup, and the scheduled backups get
+them as well. `backup-create.sh`, `backup-download-last.sh` and
+`backup-restore.sh` resolve `_FILE` variables themselves, so they also work
+under `docker exec` and `docker run`.
+
+```yaml
+services:
+  db-backup:
+    image: lkarolewski/pg-dockup:latest
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=your_database
+      - POSTGRES_USER=your_username
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
+      - AWS_ACCESS_KEY_ID_FILE=/run/secrets/aws_access_key_id
+      - AWS_SECRET_ACCESS_KEY_FILE=/run/secrets/aws_secret_access_key
+      - AWS_S3_BUCKET_NAME=your_bucket_name
+      - AWS_S3_REGION=your_aws_region
+    secrets:
+      - postgres_password
+      - aws_access_key_id
+      - aws_secret_access_key
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password
+  aws_access_key_id:
+    file: ./secrets/aws_access_key_id
+  aws_secret_access_key:
+    file: ./secrets/aws_secret_access_key
+```
+
 ## How It Works
 
 1. The container runs a cron job based on the configured schedule
