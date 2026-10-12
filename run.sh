@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
+# Resolve NAME_FILE variables (Docker secrets) into NAME.
+# shellcheck source=lib/env.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/env.sh"
+load_file_env
+
 # Create log file if it doesn't exist
 mkdir -p "$(dirname "${LOGFILE}")"
 touch "${LOGFILE}"

@@ -2,6 +2,11 @@
 set -e
 set -o pipefail
 
+# Resolve NAME_FILE variables (Docker secrets) into NAME.
+# shellcheck source=lib/env.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/env.sh"
+load_file_env
+
 function print_usage()
 {
   echo "Usage: ${0} backup.gz"
