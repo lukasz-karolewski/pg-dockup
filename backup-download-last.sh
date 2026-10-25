@@ -29,9 +29,9 @@ fi
 mkdir -p "${LOCAL_BACKUP_DIR}"
 
 # Check AWS configuration
-if [ -z "${AWS_ACCESS_KEY_ID}" ] || [ -z "${AWS_SECRET_ACCESS_KEY}" ] || [ -z "${AWS_S3_REGION}" ] || [ -z "${AWS_S3_BUCKET_NAME}" ]; then
-  echo "ERROR: AWS credentials not configured"
-  echo "Required: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_REGION, AWS_S3_BUCKET_NAME"
+if ! s3_configured; then
+  echo "ERROR: S3 not configured"
+  echo "Required: AWS_S3_REGION, AWS_S3_BUCKET_NAME; AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, or neither to use the default credential chain (e.g. an instance role)"
   exit $ERROR_AWS_NOT_CONFIGURED
 fi 
 

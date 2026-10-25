@@ -38,3 +38,21 @@ load_file_env() {
     file_env "$name" || return 1
   done
 }
+
+# s3_configured
+# True when backups can go to S3: AWS_S3_REGION and AWS_S3_BUCKET_NAME are set,
+# and the access keys are either both set or both unset. Without keys the AWS
+# CLI's default credential chain is used (an EC2 instance role, an ECS task
+# role, a shared credentials file). One key without the other is an error.
+s3_configured() {
+  if [ -z "${AWS_S3_REGION:-}" ] || [ -z "${AWS_S3_BUCKET_NAME:-}" ]; then
+    return 1
+  fi
+  local has_id="" has_secret=""
+  [ -n "${AWS_ACCESS_KEY_ID:-}" ] && has_id=1
+  [ -n "${AWS_SECRET_ACCESS_KEY:-}" ] && has_secret=1
+  if [ "$has_id" != "$has_secret" ]; then
+    echo "ERROR: set both AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, or neither to use the default credential chain" >&2
+    return 1
+  fi
+}

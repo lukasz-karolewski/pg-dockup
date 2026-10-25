@@ -104,7 +104,7 @@ ls -t "${LOCAL_BACKUP_DIR}/${BACKUP_NAME_PREFIX}"*.gz 2>/dev/null | tail -n +$((
 S3_UPLOAD_REQUIRED=true # Default to true, set to false if checksums match
 
 # Only check for duplicates and attempt upload if AWS is configured
-if [ -z "${AWS_ACCESS_KEY_ID}" ] || [ -z "${AWS_SECRET_ACCESS_KEY}" ] || [ -z "${AWS_S3_REGION}" ] || [ -z "${AWS_S3_BUCKET_NAME}" ]; then
+if ! s3_configured; then
   echo "AWS credentials not configured, skipping S3 upload check and upload."
   S3_UPLOAD_REQUIRED=false
   # Keep the original exit code logic for this specific case later
@@ -140,7 +140,7 @@ fi # end AWS credential check
 # Upload the backup to S3 only if required
 if [ "$S3_UPLOAD_REQUIRED" = true ]; then
   # Double check AWS config before attempting upload (redundant check based on above logic, but safe)
-  if [ -z "${AWS_ACCESS_KEY_ID}" ] || [ -z "${AWS_SECRET_ACCESS_KEY}" ] || [ -z "${AWS_S3_REGION}" ] || [ -z "${AWS_S3_BUCKET_NAME}" ]; then
+  if ! s3_configured; then
      echo "AWS credentials not configured. Cannot upload."
      # Exit with the specific error code for missing AWS config
      echo "Backup completed locally at $(date)"
@@ -155,7 +155,7 @@ if [ "$S3_UPLOAD_REQUIRED" = true ]; then
   fi
 else
     # If upload was skipped (either due to identical content or missing AWS config initially)
-    if [ -n "${AWS_ACCESS_KEY_ID}" ]; then # Only print skipped message if AWS *was* configured
+    if s3_configured; then # Only print skipped message if AWS *was* configured
         echo "S3 Upload skipped as content matched previous local backup."
     else
         # This case is handled by the initial AWS config check which exits
@@ -165,7 +165,7 @@ fi
 # --- S3 Logic End ---
 
 # Handle the case where AWS wasn't configured from the start
-if [ -z "${AWS_ACCESS_KEY_ID}" ] || [ -z "${AWS_SECRET_ACCESS_KEY}" ] || [ -z "${AWS_S3_REGION}" ] || [ -z "${AWS_S3_BUCKET_NAME}" ]; then
+if ! s3_configured; then
   # Check again to ensure the correct exit code is used if S3 upload was skipped *because* of missing config
   if [ "$S3_UPLOAD_REQUIRED" = false ]; then # Check if it was set to false by the initial check
      echo "Backup completed locally at $(date)"

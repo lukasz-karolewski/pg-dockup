@@ -150,6 +150,23 @@ class BackupDownloadTests(unittest.TestCase):
         self.assertNotIn("No backups found", result.stdout)
         self.assertEqual(self.server.object_requests, [])
 
+    def test_default_credential_chain_without_keys(self):
+        # An instance role reaches the CLI the same way a shared credentials file does:
+        # through its default chain, with no keys in the environment.
+        (self.root / "credentials").write_text(
+            "[default]\naws_access_key_id = role\naws_secret_access_key = role\n"
+        )
+        del self.env["AWS_ACCESS_KEY_ID"]
+        del self.env["AWS_SECRET_ACCESS_KEY"]
+        self.assert_download("pg_dump-a.gz", [[("pg_dump-a.gz", "2026-10-06T04:00:01Z")]])
+
+    def test_one_key_without_the_other_is_refused(self):
+        del self.env["AWS_SECRET_ACCESS_KEY"]
+        result = self.run_script()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("set both AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY", result.stderr)
+        self.assertEqual(self.server.list_requests, 0)
+
     def test_download_failure(self):
         self.server.pages = [[("pg_dump-a.gz", "2026-10-06T04:00:01Z")]]
         self.server.fail_download = True

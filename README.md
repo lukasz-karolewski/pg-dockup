@@ -106,8 +106,8 @@ docker run --rm --env-file .env -v "$(pwd)":/home/backup/local-backup \
 
 | Variable | Description |
 |----------|-------------|
-| `AWS_ACCESS_KEY_ID` | AWS access key with S3 permissions |
-| `AWS_SECRET_ACCESS_KEY` | AWS secret access key |
+| `AWS_ACCESS_KEY_ID` | AWS access key with S3 permissions. Optional: leave both keys unset to use the AWS CLI's default credential chain, such as an EC2 instance role (containers reach it through the metadata service; IMDSv2 needs a hop limit of 2) |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret access key; set it together with `AWS_ACCESS_KEY_ID` or not at all |
 | `AWS_S3_BUCKET_NAME` | S3 bucket name for storing backups |
 | `AWS_S3_REGION` | AWS region for the S3 bucket |
 
